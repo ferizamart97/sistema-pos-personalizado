@@ -1,8 +1,8 @@
 # compose.yml — Sistema POS Personalizado — Producción
-# Expone subdominios via Traefik:
-#   Panel Admin  → pos.somosim.mx / pos.somosin.mx / pos.ferizamart97.dev / ppa001.somosim.mx
-#   Caja POS     → cpa001.somosim.mx / caja.somosim.mx / caja.somosin.mx / caja.ferizamart97.dev
-#   API Backend  → api-pos.somosim.mx / api-pos.somosin.mx / api-pos.ferizamart97.dev / apa001.somosim.mx
+# Subdominios con DNS activo:
+#   Panel Admin  → pos.somosim.mx / pos.ferizamart97.dev / ppa001.somosim.mx
+#   Caja POS     → cpa001.somosim.mx
+#   API Backend  → api-pos.somosim.mx / apa001.somosim.mx
 
 name: pa001
 
@@ -58,7 +58,7 @@ services:
           - apa001d
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.pa001-api.rule=Host(`api-pos.somosim.mx`) || Host(`api-pos.somosin.mx`) || Host(`api-pos.ferizamart97.dev`) || Host(`apa001.somosim.mx`)"
+      - "traefik.http.routers.pa001-api.rule=Host(`api-pos.somosim.mx`) || Host(`apa001.somosim.mx`)"
       - "traefik.http.routers.pa001-api.entrypoints=websecure"
       - "traefik.http.routers.pa001-api.tls=true"
       - "traefik.http.routers.pa001-api.tls.certresolver=letsencrypt"
@@ -76,7 +76,7 @@ services:
       - pa001-net
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.pa001-panel.rule=Host(`pos.somosim.mx`) || Host(`pos.somosin.mx`) || Host(`pos.ferizamart97.dev`) || Host(`ppa001.somosim.mx`)"
+      - "traefik.http.routers.pa001-panel.rule=Host(`pos.somosim.mx`) || Host(`pos.ferizamart97.dev`) || Host(`ppa001.somosim.mx`)"
       - "traefik.http.routers.pa001-panel.entrypoints=websecure"
       - "traefik.http.routers.pa001-panel.tls=true"
       - "traefik.http.routers.pa001-panel.tls.certresolver=letsencrypt"
@@ -94,7 +94,7 @@ services:
       - pa001-net
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.pa001-caja.rule=Host(`cpa001.somosim.mx`) || Host(`caja.somosim.mx`) || Host(`caja.somosin.mx`) || Host(`caja.ferizamart97.dev`)"
+      - "traefik.http.routers.pa001-caja.rule=Host(`cpa001.somosim.mx`)"
       - "traefik.http.routers.pa001-caja.entrypoints=websecure"
       - "traefik.http.routers.pa001-caja.tls=true"
       - "traefik.http.routers.pa001-caja.tls.certresolver=letsencrypt"

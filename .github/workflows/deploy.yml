@@ -45,7 +45,7 @@ jobs:
             set -e
             
             echo "📁 Navegando al directorio del proyecto..."
-            cd /srv/somosim/pa001/
+            cd /srv/pos-ferizamart/
             
             echo "📥 Pulling últimos cambios..."
             git pull origin main

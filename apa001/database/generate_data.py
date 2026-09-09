@@ -672,7 +672,7 @@ VALUES ({al[0]}, '{al[1]}', '{al[2]}', {al[3]}, '{al[4]}'::JSONB, '{al[5]}'::INE
 sql_lines.append("\nCOMMIT;\n")
 
 # Write to file
-target_path = "/Users/fernandoizazaga/Desktop/Proyectos/dev-ferizamart97/somosim/clientes/a001/apa001/database/migrations/05_massive_test_data.sql"
+target_path = "__import__("os").path.join(__import__("os").path.dirname(__file__), "migrations/05_massive_test_data.sql")"
 with open(target_path, "w", encoding="utf-8") as f:
     f.write("\n".join(sql_lines))
 

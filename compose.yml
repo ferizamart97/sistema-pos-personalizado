@@ -1,235 +1,121 @@
-# compose.yml — Sistema POS Personalizado — Producción Multi-Instancia
-#
-# 🏢 Instancia SomosIM (Base de Datos + API + Admin + Caja aislados):
-#   - Panel Admin : https://admin-pos.somosim.mx
-#   - Terminal POS: https://pos.somosim.mx
-#
-# 💻 Instancia Ferizamart (Base de Datos + API + Admin + Caja aislados):
+# compose.yml — Sistema POS Personalizado — Producción
+# Subdominios configurados en Traefik (ferizamart97.dev):
 #   - Panel Admin : https://admin-pos.ferizamart97.dev
 #   - Terminal POS: https://pos.ferizamart97.dev
+#   - API Backend : https://api-pos.ferizamart97.dev
 
-name: pa001
+name: pos-ferizamart
 
 services:
 
-  # ============================================================================
-  # 🏢 INSTANCIA 1: SOMOSIM
-  # ============================================================================
-
-  db-somosim:
+  db:
     image: postgres:16-alpine
-    container_name: dpa001-somosim
+    container_name: pos_db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: db_pos_somosim
+      POSTGRES_DB: ${DB_NAME:-pos_db}
       POSTGRES_USER: ${DB_USER:-pos_admin}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-pos_prod_secret_2026}
     volumes:
-      - pgdata-somosim:/var/lib/postgresql/data
+      - pos_pgdata:/var/lib/postgresql/data
       - ./apa001/database/init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
       - ./apa001/database/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
       - ./apa001/database/migrations/03_features_update.sql:/docker-entrypoint-initdb.d/03_features.sql:ro
       - ./apa001/database/migrations/04_seed_new_features.sql:/docker-entrypoint-initdb.d/04_seed_features.sql:ro
       - ./apa001/database/migrations/05_massive_test_data.sql:/docker-entrypoint-initdb.d/05_massive_test_data.sql:ro
     networks:
-      pa001-somosim-net:
+      pos_net:
         aliases:
           - db
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-pos_admin} -d db_pos_somosim"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-pos_admin} -d ${DB_NAME:-pos_db}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  api-somosim:
+  api:
     build:
       context: ./apa001
       dockerfile: Dockerfile
-    container_name: apa001-somosim
+    container_name: pos_api
     restart: unless-stopped
     depends_on:
-      db-somosim:
+      db:
         condition: service_healthy
     environment:
       - APP_ENV=production
       - DB_HOST=db
       - DB_PORT=5432
-      - DB_NAME=db_pos_somosim
-      - DB_DATABASE=db_pos_somosim
+      - DB_NAME=${DB_NAME:-pos_db}
+      - DB_DATABASE=${DB_NAME:-pos_db}
       - DB_USER=${DB_USER:-pos_admin}
       - DB_USERNAME=${DB_USER:-pos_admin}
       - DB_PASSWORD=${DB_PASSWORD:-pos_prod_secret_2026}
-      - JWT_SECRET=${JWT_SECRET_SOMOSIM:-secret_jwt_somosim_prod_2026}
+      - JWT_SECRET=${JWT_SECRET:-secret_jwt_pos_prod_2026}
       - JWT_EXPIRATION=86400
-      - BUSINESS_NAME=SomosIM POS
+      - BUSINESS_NAME=${BUSINESS_NAME:-Mi Tienda}
     volumes:
-      - uploads-somosim:/var/www/html/public/uploads
+      - pos_uploads:/var/www/html/public/uploads
     networks:
-      pa001-somosim-net:
+      pos_net:
         aliases:
           - api
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.pa001-api-somosim.rule=Host(`api-pos.somosim.mx`)"
-      - "traefik.http.routers.pa001-api-somosim.entrypoints=websecure"
-      - "traefik.http.routers.pa001-api-somosim.tls=true"
-      - "traefik.http.routers.pa001-api-somosim.tls.certresolver=letsencrypt"
-      - "traefik.http.services.pa001-api-somosim.loadbalancer.server.port=80"
+      - "traefik.http.routers.pos-api.rule=Host(`api-pos.ferizamart97.dev`)"
+      - "traefik.http.routers.pos-api.entrypoints=websecure"
+      - "traefik.http.routers.pos-api.tls=true"
+      - "traefik.http.routers.pos-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.pos-api.loadbalancer.server.port=80"
 
-  panel-somosim:
+  panel:
     build:
       context: ./ppa001
       dockerfile: Dockerfile
-    container_name: ppa001-somosim
+    container_name: pos_panel
     restart: unless-stopped
     depends_on:
-      - api-somosim
+      - api
     networks:
-      - pa001-somosim-net
+      - pos_net
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.pa001-panel-somosim.rule=Host(`admin-pos.somosim.mx`)"
-      - "traefik.http.routers.pa001-panel-somosim.entrypoints=websecure"
-      - "traefik.http.routers.pa001-panel-somosim.tls=true"
-      - "traefik.http.routers.pa001-panel-somosim.tls.certresolver=letsencrypt"
-      - "traefik.http.services.pa001-panel-somosim.loadbalancer.server.port=80"
+      - "traefik.http.routers.pos-panel.rule=Host(`admin-pos.ferizamart97.dev`)"
+      - "traefik.http.routers.pos-panel.entrypoints=websecure"
+      - "traefik.http.routers.pos-panel.tls=true"
+      - "traefik.http.routers.pos-panel.tls.certresolver=letsencrypt"
+      - "traefik.http.services.pos-panel.loadbalancer.server.port=80"
 
-  caja-somosim:
+  caja:
     build:
       context: ./cpa001
       dockerfile: Dockerfile
-    container_name: cpa001-somosim
+    container_name: pos_caja
     restart: unless-stopped
     depends_on:
-      - api-somosim
+      - api
     networks:
-      - pa001-somosim-net
+      - pos_net
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.pa001-caja-somosim.rule=Host(`pos.somosim.mx`)"
-      - "traefik.http.routers.pa001-caja-somosim.entrypoints=websecure"
-      - "traefik.http.routers.pa001-caja-somosim.tls=true"
-      - "traefik.http.routers.pa001-caja-somosim.tls.certresolver=letsencrypt"
-      - "traefik.http.services.pa001-caja-somosim.loadbalancer.server.port=80"
-
-  # ============================================================================
-  # 💻 INSTANCIA 2: FERIZAMART
-  # ============================================================================
-
-  db-ferizamart:
-    image: postgres:16-alpine
-    container_name: dpa001-ferizamart
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: db_pos_ferizamart
-      POSTGRES_USER: ${DB_USER:-pos_admin}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-pos_prod_secret_2026}
-    volumes:
-      - pgdata-ferizamart:/var/lib/postgresql/data
-      - ./apa001/database/init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
-      - ./apa001/database/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
-      - ./apa001/database/migrations/03_features_update.sql:/docker-entrypoint-initdb.d/03_features.sql:ro
-      - ./apa001/database/migrations/04_seed_new_features.sql:/docker-entrypoint-initdb.d/04_seed_features.sql:ro
-      - ./apa001/database/migrations/05_massive_test_data.sql:/docker-entrypoint-initdb.d/05_massive_test_data.sql:ro
-    networks:
-      pa001-ferizamart-net:
-        aliases:
-          - db
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-pos_admin} -d db_pos_ferizamart"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  api-ferizamart:
-    build:
-      context: ./apa001
-      dockerfile: Dockerfile
-    container_name: apa001-ferizamart
-    restart: unless-stopped
-    depends_on:
-      db-ferizamart:
-        condition: service_healthy
-    environment:
-      - APP_ENV=production
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_NAME=db_pos_ferizamart
-      - DB_DATABASE=db_pos_ferizamart
-      - DB_USER=${DB_USER:-pos_admin}
-      - DB_USERNAME=${DB_USER:-pos_admin}
-      - DB_PASSWORD=${DB_PASSWORD:-pos_prod_secret_2026}
-      - JWT_SECRET=${JWT_SECRET_FERIZAMART:-secret_jwt_ferizamart_prod_2026}
-      - JWT_EXPIRATION=86400
-      - BUSINESS_NAME=Ferizamart POS
-    volumes:
-      - uploads-ferizamart:/var/www/html/public/uploads
-    networks:
-      pa001-ferizamart-net:
-        aliases:
-          - api
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.pa001-api-ferizamart.rule=Host(`api-pos.ferizamart97.dev`)"
-      - "traefik.http.routers.pa001-api-ferizamart.entrypoints=websecure"
-      - "traefik.http.routers.pa001-api-ferizamart.tls=true"
-      - "traefik.http.routers.pa001-api-ferizamart.tls.certresolver=letsencrypt"
-      - "traefik.http.services.pa001-api-ferizamart.loadbalancer.server.port=80"
-
-  panel-ferizamart:
-    build:
-      context: ./ppa001
-      dockerfile: Dockerfile
-    container_name: ppa001-ferizamart
-    restart: unless-stopped
-    depends_on:
-      - api-ferizamart
-    networks:
-      - pa001-ferizamart-net
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.pa001-panel-ferizamart.rule=Host(`admin-pos.ferizamart97.dev`)"
-      - "traefik.http.routers.pa001-panel-ferizamart.entrypoints=websecure"
-      - "traefik.http.routers.pa001-panel-ferizamart.tls=true"
-      - "traefik.http.routers.pa001-panel-ferizamart.tls.certresolver=letsencrypt"
-      - "traefik.http.services.pa001-panel-ferizamart.loadbalancer.server.port=80"
-
-  caja-ferizamart:
-    build:
-      context: ./cpa001
-      dockerfile: Dockerfile
-    container_name: cpa001-ferizamart
-    restart: unless-stopped
-    depends_on:
-      - api-ferizamart
-    networks:
-      - pa001-ferizamart-net
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.pa001-caja-ferizamart.rule=Host(`pos.ferizamart97.dev`)"
-      - "traefik.http.routers.pa001-caja-ferizamart.entrypoints=websecure"
-      - "traefik.http.routers.pa001-caja-ferizamart.tls=true"
-      - "traefik.http.routers.pa001-caja-ferizamart.tls.certresolver=letsencrypt"
-      - "traefik.http.services.pa001-caja-ferizamart.loadbalancer.server.port=80"
+      - "traefik.http.routers.pos-caja.rule=Host(`pos.ferizamart97.dev`)"
+      - "traefik.http.routers.pos-caja.entrypoints=websecure"
+      - "traefik.http.routers.pos-caja.tls=true"
+      - "traefik.http.routers.pos-caja.tls.certresolver=letsencrypt"
+      - "traefik.http.services.pos-caja.loadbalancer.server.port=80"
 
 # ============================================================================
 # 💾 VOLUMES
 # ============================================================================
 volumes:
-  pgdata-somosim:
-    name: pgdata-somosim
-  uploads-somosim:
-    name: uploads-somosim
-  pgdata-ferizamart:
-    name: pgdata-ferizamart
-  uploads-ferizamart:
-    name: uploads-ferizamart
+  pos_pgdata:
+    name: pos_pgdata
+  pos_uploads:
+    name: pos_uploads
 
 # ============================================================================
 # 🌐 NETWORKS
 # ============================================================================
 networks:
-  pa001-somosim-net:
-    name: pa001-somosim-net
-  pa001-ferizamart-net:
-    name: pa001-ferizamart-net
+  pos_net:
+    name: pos_net

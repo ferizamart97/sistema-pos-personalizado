@@ -1,5 +1,5 @@
 {
-  "name": "somosim/pos-api",
+  "name": "ferizamart/pos-api",
   "description": "API REST para Sistema POS",
   "type": "project",
   "require": {

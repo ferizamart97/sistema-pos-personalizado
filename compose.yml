@@ -1,22 +1,20 @@
 # compose.yml — Sistema POS Personalizado — Producción
-# Expone 3 subdominios via Traefik:
-#   Panel Admin  → pos.somosin.mx        / pos.ferizamart97.dev
-#   Caja POS     → caja.somosin.mx       / caja.ferizamart97.dev
-#   API Backend  → api-pos.somosin.mx    / api-pos.ferizamart97.dev
+# Expone subdominios via Traefik:
+#   Panel Admin  → pos.somosin.mx / pos.ferizamart97.dev / ppa001.somosim.mx
+#   Caja POS     → cpa001.somosim.mx
+#   API Backend  → api-pos.somosim.mx / apa001.somosim.mx
 
 name: pa001
 
 services:
-
-  # ─── Base de Datos ────────────────────────────────────────────
-  db:
+  dpa001:
     image: postgres:16-alpine
     container_name: dpa001
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_DB: ${DB_NAME:-db_pa001}
+      POSTGRES_USER: ${DB_USER:-pos_admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-pos_prod_secret_2026}
     volumes:
       - dpa001-data:/var/lib/postgresql/data
       - ./apa001/database/init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
@@ -25,108 +23,89 @@ services:
     networks:
       - pa001-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-pos_admin} -d ${DB_NAME:-db_pa001}"]
+      interval: 5s
       timeout: 5s
       retries: 5
 
-  # ─── API Backend PHP ─────────────────────────────────────────
-  api:
+  apa001:
     build:
       context: ./apa001
       dockerfile: Dockerfile
     container_name: apa001
     restart: unless-stopped
     depends_on:
-      db:
+      dpa001:
         condition: service_healthy
-    env_file: .env
     environment:
-      DB_HOST: db
+      - APP_ENV=production
+      - DB_HOST=dpa001
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME:-db_pa001}
+      - DB_DATABASE=${DB_NAME:-db_pa001}
+      - DB_USER=${DB_USER:-pos_admin}
+      - DB_USERNAME=${DB_USER:-pos_admin}
+      - DB_PASSWORD=${DB_PASSWORD:-pos_prod_secret_2026}
+      - JWT_SECRET=${JWT_SECRET:-secret_jwt_apa001_prod_2026}
+      - JWT_EXPIRATION=86400
+      - BUSINESS_NAME=${BUSINESS_NAME:-Mi Tienda}
     volumes:
       - uploads-pa001:/var/www/html/public/uploads
     networks:
-      - pa001-net
-      - traefik-net
+      pa001-net:
+        aliases:
+          - apa001
+          - apa001d
     labels:
       - "traefik.enable=true"
-      # somosin.mx
-      - "traefik.http.routers.pa001-api-somosin.rule=Host(`api-pos.somosin.mx`)"
-      - "traefik.http.routers.pa001-api-somosin.entrypoints=websecure"
-      - "traefik.http.routers.pa001-api-somosin.tls.certresolver=letsencrypt"
-      # ferizamart97.dev
-      - "traefik.http.routers.pa001-api-ferizamart.rule=Host(`api-pos.ferizamart97.dev`)"
-      - "traefik.http.routers.pa001-api-ferizamart.entrypoints=websecure"
-      - "traefik.http.routers.pa001-api-ferizamart.tls.certresolver=letsencrypt"
-      # Servicio
+      - "traefik.http.routers.pa001-api.rule=Host(`api-pos.somosim.mx`) || Host(`apa001.somosim.mx`)"
+      - "traefik.http.routers.pa001-api.entrypoints=websecure"
+      - "traefik.http.routers.pa001-api.tls=true"
+      - "traefik.http.routers.pa001-api.tls.certresolver=letsencrypt"
       - "traefik.http.services.pa001-api.loadbalancer.server.port=80"
 
-  # ─── Panel Administrativo ────────────────────────────────────
-  panel:
+  ppa001:
     build:
       context: ./ppa001
       dockerfile: Dockerfile
-      args:
-        VITE_API_URL: ${APP_URL}/api
-        VITE_APP_NAME: ${BUSINESS_NAME:-Sistema POS}
     container_name: ppa001
     restart: unless-stopped
     depends_on:
-      - api
+      - apa001
     networks:
       - pa001-net
-      - traefik-net
     labels:
       - "traefik.enable=true"
-      # somosin.mx
-      - "traefik.http.routers.pa001-panel-somosin.rule=Host(`pos.somosin.mx`)"
-      - "traefik.http.routers.pa001-panel-somosin.entrypoints=websecure"
-      - "traefik.http.routers.pa001-panel-somosin.tls.certresolver=letsencrypt"
-      # ferizamart97.dev
-      - "traefik.http.routers.pa001-panel-ferizamart.rule=Host(`pos.ferizamart97.dev`)"
-      - "traefik.http.routers.pa001-panel-ferizamart.entrypoints=websecure"
-      - "traefik.http.routers.pa001-panel-ferizamart.tls.certresolver=letsencrypt"
-      # Servicio
+      - "traefik.http.routers.pa001-panel.rule=Host(`pos.somosin.mx`) || Host(`pos.ferizamart97.dev`) || Host(`ppa001.somosim.mx`)"
+      - "traefik.http.routers.pa001-panel.entrypoints=websecure"
+      - "traefik.http.routers.pa001-panel.tls=true"
+      - "traefik.http.routers.pa001-panel.tls.certresolver=letsencrypt"
       - "traefik.http.services.pa001-panel.loadbalancer.server.port=80"
 
-  # ─── Terminal de Caja (POS Vendedor) ─────────────────────────
-  caja:
+  cpa001:
     build:
       context: ./cpa001
       dockerfile: Dockerfile
-      args:
-        VITE_API_URL: ${APP_URL}/api
-        VITE_APP_NAME: ${BUSINESS_NAME:-Sistema POS}
-        VITE_APP_DESCRIPTION: Terminal de Ventas
     container_name: cpa001
     restart: unless-stopped
     depends_on:
-      - api
+      - apa001
     networks:
       - pa001-net
-      - traefik-net
     labels:
       - "traefik.enable=true"
-      # somosin.mx
-      - "traefik.http.routers.pa001-caja-somosin.rule=Host(`caja.somosin.mx`)"
-      - "traefik.http.routers.pa001-caja-somosin.entrypoints=websecure"
-      - "traefik.http.routers.pa001-caja-somosin.tls.certresolver=letsencrypt"
-      # ferizamart97.dev
-      - "traefik.http.routers.pa001-caja-ferizamart.rule=Host(`caja.ferizamart97.dev`)"
-      - "traefik.http.routers.pa001-caja-ferizamart.entrypoints=websecure"
-      - "traefik.http.routers.pa001-caja-ferizamart.tls.certresolver=letsencrypt"
-      # Servicio
+      - "traefik.http.routers.pa001-caja.rule=Host(`cpa001.somosim.mx`)"
+      - "traefik.http.routers.pa001-caja.entrypoints=websecure"
+      - "traefik.http.routers.pa001-caja.tls=true"
+      - "traefik.http.routers.pa001-caja.tls.certresolver=letsencrypt"
       - "traefik.http.services.pa001-caja.loadbalancer.server.port=80"
 
-# ─── Volumes ──────────────────────────────────────────────────
 volumes:
   dpa001-data:
+    name: dpa001-data
   uploads-pa001:
+    name: uploads-pa001
 
-# ─── Networks ─────────────────────────────────────────────────
 networks:
   pa001-net:
-    driver: bridge
-  traefik-net:
-    external: true
-    name: traefik-net
+    name: pa001-net

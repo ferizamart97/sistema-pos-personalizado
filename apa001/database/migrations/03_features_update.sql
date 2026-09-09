@@ -178,7 +178,7 @@ ADD COLUMN IF NOT EXISTS service_id INTEGER REFERENCES services(id) ON DELETE SE
 ALTER COLUMN quantity TYPE NUMERIC(10,3);
 
 -- 10. Triggers de actualización de updated_at para nuevas tablas
-CREATE OR REPLACE TRIGGER tr_packages_updated_at BEFORE UPDATE ON packages FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE OR REPLACE TRIGGER tr_services_updated_at BEFORE UPDATE ON services FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE OR REPLACE TRIGGER tr_custom_orders_updated_at BEFORE UPDATE ON custom_orders FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE OR REPLACE TRIGGER tr_layaways_updated_at BEFORE UPDATE ON layaways FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE OR REPLACE TRIGGER tr_packages_updated_at BEFORE UPDATE ON packages FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE OR REPLACE TRIGGER tr_services_updated_at BEFORE UPDATE ON services FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE OR REPLACE TRIGGER tr_custom_orders_updated_at BEFORE UPDATE ON custom_orders FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE OR REPLACE TRIGGER tr_layaways_updated_at BEFORE UPDATE ON layaways FOR EACH ROW EXECUTE FUNCTION update_updated_at();

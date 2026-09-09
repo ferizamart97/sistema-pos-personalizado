@@ -27,8 +27,10 @@ services:
     volumes:
       - pgdata-somosim:/var/lib/postgresql/data
       - ./apa001/database/init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+      - ./apa001/database/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
       - ./apa001/database/migrations/03_features_update.sql:/docker-entrypoint-initdb.d/03_features.sql:ro
       - ./apa001/database/migrations/04_seed_new_features.sql:/docker-entrypoint-initdb.d/04_seed_features.sql:ro
+      - ./apa001/database/migrations/05_massive_test_data.sql:/docker-entrypoint-initdb.d/05_massive_test_data.sql:ro
     networks:
       pa001-somosim-net:
         aliases:
@@ -125,8 +127,10 @@ services:
     volumes:
       - pgdata-ferizamart:/var/lib/postgresql/data
       - ./apa001/database/init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+      - ./apa001/database/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
       - ./apa001/database/migrations/03_features_update.sql:/docker-entrypoint-initdb.d/03_features.sql:ro
       - ./apa001/database/migrations/04_seed_new_features.sql:/docker-entrypoint-initdb.d/04_seed_features.sql:ro
+      - ./apa001/database/migrations/05_massive_test_data.sql:/docker-entrypoint-initdb.d/05_massive_test_data.sql:ro
     networks:
       pa001-ferizamart-net:
         aliases:

@@ -1,0 +1,24 @@
+{
+  "name": "somosim/pos-api",
+  "description": "API REST para Sistema POS",
+  "type": "project",
+  "require": {
+    "php": ">=8.2",
+    "firebase/php-jwt": "^6.10",
+    "phpmailer/phpmailer": "^6.9",
+    "dompdf/dompdf": "^3.0",
+    "intervention/image": "^3.7",
+    "twilio/sdk": "^7.16"
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\": "."
+    }
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "audit": {
+      "block": false
+    }
+  }
+}

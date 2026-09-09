@@ -1,0 +1,43 @@
+# ─── Entorno ─────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ─── Node.js / Frontend ──────────────────────────────────────
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+.cache/
+*.local
+
+# ─── PHP / Composer ─────────────────────────────────────────
+vendor/
+**/vendor/
+composer.lock
+
+# ─── Uploads / Medios ───────────────────────────────────────
+**/public/uploads/*
+**/uploads/*
+!**/public/uploads/.gitkeep
+!**/uploads/.gitkeep
+
+# ─── Logs ────────────────────────────────────────────────────
+*.log
+logs/
+**/logs/
+
+# ─── macOS ───────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+**/.DS_Store
+
+# ─── IDEs ────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ─── pgAdmin / BD temp ──────────────────────────────────────
+pgdata/
+**/pgdata/

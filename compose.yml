@@ -1,0 +1,132 @@
+# compose.yml — Sistema POS Personalizado — Producción
+# Expone 3 subdominios via Traefik:
+#   Panel Admin  → pos.somosin.mx        / pos.ferizamart97.dev
+#   Caja POS     → caja.somosin.mx       / caja.ferizamart97.dev
+#   API Backend  → api-pos.somosin.mx    / api-pos.ferizamart97.dev
+
+name: pa001
+
+services:
+
+  # ─── Base de Datos ────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: dpa001
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - dpa001-data:/var/lib/postgresql/data
+      - ./apa001/database/init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+      - ./apa001/database/migrations/03_features_update.sql:/docker-entrypoint-initdb.d/03_features.sql:ro
+      - ./apa001/database/migrations/04_seed_new_features.sql:/docker-entrypoint-initdb.d/04_seed_features.sql:ro
+    networks:
+      - pa001-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── API Backend PHP ─────────────────────────────────────────
+  api:
+    build:
+      context: ./apa001
+      dockerfile: Dockerfile
+    container_name: apa001
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      DB_HOST: db
+    volumes:
+      - uploads-pa001:/var/www/html/public/uploads
+    networks:
+      - pa001-net
+      - traefik-net
+    labels:
+      - "traefik.enable=true"
+      # somosin.mx
+      - "traefik.http.routers.pa001-api-somosin.rule=Host(`api-pos.somosin.mx`)"
+      - "traefik.http.routers.pa001-api-somosin.entrypoints=websecure"
+      - "traefik.http.routers.pa001-api-somosin.tls.certresolver=letsencrypt"
+      # ferizamart97.dev
+      - "traefik.http.routers.pa001-api-ferizamart.rule=Host(`api-pos.ferizamart97.dev`)"
+      - "traefik.http.routers.pa001-api-ferizamart.entrypoints=websecure"
+      - "traefik.http.routers.pa001-api-ferizamart.tls.certresolver=letsencrypt"
+      # Servicio
+      - "traefik.http.services.pa001-api.loadbalancer.server.port=80"
+
+  # ─── Panel Administrativo ────────────────────────────────────
+  panel:
+    build:
+      context: ./ppa001
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${APP_URL}/api
+        VITE_APP_NAME: ${BUSINESS_NAME:-Sistema POS}
+    container_name: ppa001
+    restart: unless-stopped
+    depends_on:
+      - api
+    networks:
+      - pa001-net
+      - traefik-net
+    labels:
+      - "traefik.enable=true"
+      # somosin.mx
+      - "traefik.http.routers.pa001-panel-somosin.rule=Host(`pos.somosin.mx`)"
+      - "traefik.http.routers.pa001-panel-somosin.entrypoints=websecure"
+      - "traefik.http.routers.pa001-panel-somosin.tls.certresolver=letsencrypt"
+      # ferizamart97.dev
+      - "traefik.http.routers.pa001-panel-ferizamart.rule=Host(`pos.ferizamart97.dev`)"
+      - "traefik.http.routers.pa001-panel-ferizamart.entrypoints=websecure"
+      - "traefik.http.routers.pa001-panel-ferizamart.tls.certresolver=letsencrypt"
+      # Servicio
+      - "traefik.http.services.pa001-panel.loadbalancer.server.port=80"
+
+  # ─── Terminal de Caja (POS Vendedor) ─────────────────────────
+  caja:
+    build:
+      context: ./cpa001
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${APP_URL}/api
+        VITE_APP_NAME: ${BUSINESS_NAME:-Sistema POS}
+        VITE_APP_DESCRIPTION: Terminal de Ventas
+    container_name: cpa001
+    restart: unless-stopped
+    depends_on:
+      - api
+    networks:
+      - pa001-net
+      - traefik-net
+    labels:
+      - "traefik.enable=true"
+      # somosin.mx
+      - "traefik.http.routers.pa001-caja-somosin.rule=Host(`caja.somosin.mx`)"
+      - "traefik.http.routers.pa001-caja-somosin.entrypoints=websecure"
+      - "traefik.http.routers.pa001-caja-somosin.tls.certresolver=letsencrypt"
+      # ferizamart97.dev
+      - "traefik.http.routers.pa001-caja-ferizamart.rule=Host(`caja.ferizamart97.dev`)"
+      - "traefik.http.routers.pa001-caja-ferizamart.entrypoints=websecure"
+      - "traefik.http.routers.pa001-caja-ferizamart.tls.certresolver=letsencrypt"
+      # Servicio
+      - "traefik.http.services.pa001-caja.loadbalancer.server.port=80"
+
+# ─── Volumes ──────────────────────────────────────────────────
+volumes:
+  dpa001-data:
+  uploads-pa001:
+
+# ─── Networks ─────────────────────────────────────────────────
+networks:
+  pa001-net:
+    driver: bridge
+  traefik-net:
+    external: true
+    name: traefik-net

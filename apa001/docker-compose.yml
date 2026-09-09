@@ -1,0 +1,36 @@
+name: ${COMPOSE_PROJECT_NAME:-pa001-apa001}
+
+services:
+  apa001:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ${CONTAINER_NAME:-apa001}
+    restart: unless-stopped
+    environment:
+      - APP_ENV=${APP_ENV:-production}
+      - DB_HOST=${DB_HOST:-dpa001}
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME:-db_pa001}
+      - DB_DATABASE=${DB_NAME:-db_pa001}
+      - DB_USER=pos_admin
+      - DB_USERNAME=pos_admin
+      - DB_PASSWORD=${DB_PASSWORD:-pos_prod_secret_2026}
+      - JWT_SECRET=${JWT_SECRET:-secret_jwt_apa001_2026}
+      - JWT_EXPIRATION=86400
+    volumes:
+      - ./uploads:/var/www/html/public/uploads
+    networks:
+      - pa_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.${TRAEFIK_ROUTER:-apa001}.rule=Host(`${FQDN:-apa001.somosim.mx}`)"
+      - "traefik.http.routers.${TRAEFIK_ROUTER:-apa001}.entrypoints=websecure"
+      - "traefik.http.routers.${TRAEFIK_ROUTER:-apa001}.tls=true"
+      - "traefik.http.routers.${TRAEFIK_ROUTER:-apa001}.tls.certresolver=letsencrypt"
+      - "traefik.http.services.${TRAEFIK_ROUTER:-apa001}.loadbalancer.server.port=80"
+
+networks:
+  pa_network:
+    name: ${NETWORK_NAME:-pa001-net}
+    external: true

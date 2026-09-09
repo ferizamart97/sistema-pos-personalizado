@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* === Material Symbols Font Configuration === */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined' !important;
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
+/* === Estilos globales para touch === */
+* {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+html, body, #root {
+  height: 100%;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: #f8f9ff;
+}
+
+/* Prevenir selección de texto en botones */
+button, [role="button"] {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Selects accesibles y touch friendly */
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23630ed4'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1.25em 1.25em;
+  padding-right: 2.25rem !important;
+}
+
+/* Scrollbar personalizado */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+
+/* Animación de presión touch */
+.touch-active:active {
+  transform: scale(0.96);
+  transition: transform 0.1s ease;
+}
+
+/* === AISLAMIENTO DE IMPRESIÓN EXCLUSIVA DE TICKETS (80mm) === */
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  
+  #ticket-print-area, #ticket-print-area * {
+    visibility: visible !important;
+  }
+  
+  #ticket-print-area {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 76mm !important;
+    max-width: 76mm !important;
+    margin: 0 auto !important;
+    padding: 3mm !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-family: 'Courier New', Courier, monospace !important;
+    z-index: 999999 !important;
+  }
+
+  @page {
+    size: 80mm auto;
+    margin: 0mm;
+  }
+}

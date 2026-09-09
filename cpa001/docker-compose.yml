@@ -1,0 +1,25 @@
+name: ${COMPOSE_PROJECT_NAME:-pa001-cpa001}
+
+services:
+  cpa001:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-https://apa001.somosim.mx/api}
+    container_name: ${CONTAINER_NAME:-cpa001}
+    restart: unless-stopped
+    networks:
+      - pa_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.${TRAEFIK_ROUTER:-cpa001}.rule=Host(`${FQDN:-cpa001.somosim.mx}`)"
+      - "traefik.http.routers.${TRAEFIK_ROUTER:-cpa001}.entrypoints=websecure"
+      - "traefik.http.routers.${TRAEFIK_ROUTER:-cpa001}.tls=true"
+      - "traefik.http.routers.${TRAEFIK_ROUTER:-cpa001}.tls.certresolver=letsencrypt"
+      - "traefik.http.services.${TRAEFIK_ROUTER:-cpa001}.loadbalancer.server.port=80"
+
+networks:
+  pa_network:
+    name: ${NETWORK_NAME:-pa001-net}
+    external: true

@@ -1,0 +1,108 @@
+name: pa001d
+
+services:
+  dpa001d:
+    container_name: dpa001d
+    image: postgres:16-alpine
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: db_pa001d
+      POSTGRES_USER: pos_admin
+      POSTGRES_PASSWORD: pos_dev_secret_2026
+    volumes:
+      - dpa001d-data:/var/lib/postgresql/data
+      - ./apa001/database/init.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+      - ./apa001/database/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql:ro
+      - ./apa001/database/migrations/03_features_update.sql:/docker-entrypoint-initdb.d/03_features.sql:ro
+      - ./apa001/database/migrations/04_seed_new_features.sql:/docker-entrypoint-initdb.d/04_seed_features.sql:ro
+      - ./apa001/database/migrations/05_massive_test_data.sql:/docker-entrypoint-initdb.d/05_massive_data.sql:ro
+    networks:
+      - pa001d-net
+
+  apa001d:
+    container_name: apa001d
+    build:
+      context: ./apa001
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      - APP_ENV=dev
+      - DB_HOST=dpa001d
+      - DB_PORT=5432
+      - DB_DATABASE=db_pa001d
+      - DB_USERNAME=pos_admin
+      - DB_PASSWORD=pos_dev_secret_2026
+      - JWT_SECRET=secret_jwt_apa001d_2026
+      - JWT_EXPIRATION=86400
+    volumes:
+      - ./apa001/public/uploads:/var/www/html/public/uploads
+    networks:
+      - pa001d-net
+    depends_on:
+      - dpa001d
+
+  ppa001d:
+    container_name: ppa001d
+    build:
+      context: ./ppa001
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=http://localhost:8080/api
+    restart: unless-stopped
+    ports:
+      - "3001:80"
+    networks:
+      - pa001d-net
+    depends_on:
+      - apa001d
+
+  cpa001d:
+    container_name: cpa001d
+    build:
+      context: ./cpa001
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=http://localhost:8080/api
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    networks:
+      - pa001d-net
+    depends_on:
+      - apa001d
+
+  gpa001d:
+    container_name: gpa001d
+    image: dpage/pgadmin4
+    restart: unless-stopped
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@somosim.mx
+      PGADMIN_DEFAULT_PASSWORD: admin
+    networks:
+      - pa001d-net
+    depends_on:
+      - dpa001d
+
+  mpa001d:
+    container_name: mpa001d
+    image: mailhog/mailhog
+    restart: unless-stopped
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    networks:
+      - pa001d-net
+
+networks:
+  pa001d-net:
+    driver: bridge
+
+volumes:
+  dpa001d-data:
+    driver: local
